@@ -1,2 +1,1 @@
-# Applied-Gryptography
-Applied Gryptography
+# Applied-Cryptography
