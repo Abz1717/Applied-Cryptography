@@ -30,7 +30,7 @@ string sha256(const string& str) {
     ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i]; // converting each byte to hex
   }
 
-  return ss.str();    //formatted hex string of hash
+  return ss.str();    //returning formatted hex string of hash
 }
 
 int main() {
@@ -48,27 +48,33 @@ int main() {
         if (separator != string::npos) {
             username = line.substr(0, separator);   //extraction 
             hashed_pass = line.substr(separator + 1); //extraction
-            user_passwords[username] = hashed_pass;   //storing user and hashh pass in map
+            user_passwords[username] = hashed_pass;   //storing in map
         }
     }
     password_file.close();
 
+  //prompting user for username
   std::cout << "Enter username: ";
   std::cin >> username;
+  //making sure username length does not exceed 32 characters
   if (username.length() > 32) {
     std::cerr << "Username is too long. Maximum allowed length is 32 characters." << std::endl;
     return 1;
   }
 
+  //prompting user for password 
   std::cout << "Enter password: ";
   std::cin >> password;
+
+  //making sure password length does not exceed 32 characters
   if (password.length() > 32) {
     std::cerr << "Password is too long. Maximum allowed length is 32 characters." << std::endl;
     return 1;
   }
 
   
-  string user_input_hash = sha256(password);    //hash user pass using sha 256 function
+  //hash the entered password using SHA256
+  string user_input_hash = sha256(password);    
 
 
     
@@ -79,7 +85,7 @@ int main() {
 
     //checking for username and hashed input matches store 
     if (user_passwords.find(username) != user_passwords.end() && user_passwords[username] == user_input_hash) {
-        authenticated(username); 
+        authenticated(username);   //call authenticated if credentials are correct
     } else {
         rejected(username); 
     }
