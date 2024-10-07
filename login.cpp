@@ -41,6 +41,7 @@ int main() {
 
   std::ifstream password_file("passwords.txt");
 
+
     while (std::getline(password_file, line)) {
         size_t separator = line.find(':');    //finding :
 
@@ -54,9 +55,17 @@ int main() {
 
   std::cout << "Enter username: ";
   std::cin >> username;
+  if (username.length() > 32) {
+    std::cerr << "Username is too long. Maximum allowed length is 32 characters." << std::endl;
+    return 1;
+  }
 
   std::cout << "Enter password: ";
   std::cin >> password;
+  if (password.length() > 32) {
+    std::cerr << "Password is too long. Maximum allowed length is 32 characters." << std::endl;
+    return 1;
+  }
 
   
   string user_input_hash = sha256(password);    //hash user pass using sha 256 function
