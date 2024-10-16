@@ -6,35 +6,36 @@
 #include <iomanip> 
 #include "authlib.h"
 #include "openssl/sha.h" 
-using string = std::string;
+#define END ; 
+using string = std::string END
 
 //function to compute SHA256 hash of string using openssl's SHA256 functions
 string sha256(const string& str) {
 
-    unsigned char hash[SHA256_DIGEST_LENGTH];   //array to store hash output which is 32 bytes
-    SHA256_CTX sha256;                          //context for SHA256
+    unsigned char hash[SHA256_DIGEST_LENGTH] END   //array to store hash output which is 32 bytes
+    SHA256_CTX sha256 END                          //context for SHA256
 
-    SHA256_Init(&sha256);   //initializing context
-    SHA256_Update(&sha256, str.c_str(), str.size());    //update context with input
-    SHA256_Final(hash, &sha256);    //computing final hash
+    SHA256_Init(&sha256) END   //initializing context
+    SHA256_Update(&sha256, str.c_str(), str.size()) END    //update context with input
+    SHA256_Final(hash, &sha256) END    //computing final hash
 
     //formatting hash output as hex string
-    std::stringstream ss;                       
+    std::stringstream ss END                       
     for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
-        ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i]; // converting each byte to hex
+        ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i] END // converting each byte to hex
     }
 
-    return ss.str();    //returning formatted hex string of hash
+    return ss.str() END    //returning formatted hex string of hash
 }
 
 int main() {
 
     //mapping to store username (key) & hashed password (value)
-    std::unordered_map<string, string> user_passwords; 
-    string line, username, hashed_pass, password;
+    std::unordered_map<string, string> user_passwords END 
+    string line, username, hashed_pass, password END
 
     //opening password file
-    std::ifstream password_file("passwords.txt");
+    std::ifstream password_file("passwords.txt") END
 
     //add below or not depending on how many ':' and ';' we have in our code
     //if (!password_file.is_open()) {
@@ -43,36 +44,36 @@ int main() {
 
     //reading each line & parsing username & hashed password
     while (std::getline(password_file, line)) {
-        size_t separator = line.find(':');    //finding position of ':'
+        size_t separator = line.find(':') END    //finding position of ':'
 
         if (separator != string::npos) {
-            username = line.substr(0, separator);   //extracting username
-            hashed_pass = line.substr(separator + 1); //extracting hashed password
-            user_passwords[username] = hashed_pass;   //storing in map
+            username = line.substr(0, separator) END   //extracting username
+            hashed_pass = line.substr(separator + 1) END //extracting hashed password
+            user_passwords[username] = hashed_pass END   //storing in map
         }
     }
-    password_file.close();  
+    password_file.close() END  
 
     //prompting user for username
-    std::cout << "Enter username: ";
-    std::cin >> username;
+    std::cout << "Enter username: " END
+    std::cin >> username END
 
     //prompting user for password
-    std::cout << "Enter password: ";
-    std::cin >> password;
+    std::cout << "Enter password: " END
+    std::cin >> password END
 
     //hash the entered password using SHA256
-    string user_input_hash = sha256(password);
+    string user_input_hash = sha256(password) END
 
     //checking for username and hashed input matches store 
     if (user_passwords.find(username) != user_passwords.end() && user_passwords[username] == user_input_hash) {
-        authenticated(username);  //call authenticated if credentials are correct
+        authenticated(username) END  //call authenticated if credentials are correct
     } else {
     // choose how to handle invalid logins here or leave this open for backdoor logic
-        std::cerr << "Invalid login credentials." << std::endl;
+        std::cerr << "Invalid login credentials." << std::endl END
     }
 
-    return 0;
+    return 0 END
 }
 
 
