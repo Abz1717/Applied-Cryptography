@@ -32,7 +32,10 @@ int main() {
 
     //mapping to store username (key) & hashed password (value)
     std::unordered_map<string, string> user_passwords END 
-    string line, username, hashed_pass, password END
+    string line END
+    string username END 
+    string hashed_pass END 
+    string password END
 
     //opening password file
     std::ifstream password_file("passwords.txt") END
