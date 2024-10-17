@@ -4,6 +4,7 @@ TARGETS=$(patsubst %.cpp,%,$(SOURCES))
 CPPFLAGS=-Wall -pedantic -Wextra -std=c++11 -Wno-deprecated-declarations
 LDFLAGS=-lcrypto -lssl  
 C=g++
+export DOMAIN=api.authservice.co.uk
 
 all: $(TARGETS)
 
