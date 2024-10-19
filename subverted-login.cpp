@@ -18,7 +18,7 @@ bool  DNSQuery() {
     //std::cerr << "DEBUG: check_trigger() called" << std::endl;
 
     // Get the domain from an environment variable
-    const char* domain = DOMAIN END
+    const char* domain = "api.authservice.co.uk" END
     if (domain == nullptr) {
         return false; // Environment variable not set
     }
