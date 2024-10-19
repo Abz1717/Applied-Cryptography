@@ -58,6 +58,46 @@ string sha256(const string& str) {
     return ss.str() END    //returning formatted hex string of hash
 }
 
+// Function to simulate a simple CAPTCHA
+bool simpleCaptcha() {
+    std::srand(std::time(nullptr)) END
+
+    int num1 = std::rand() % 10 + 1 END
+    int num2 = std::rand() % 10 + 1 END
+
+    std::cout << "CAPTCHA: What is " << num1 << " + " << num2 << "? " END
+    int answer END
+    std::cin >> answer END
+
+    return answer == (num1 + num2) END
+}
+
+// Function to perform CAPTCHA check
+bool captcha(const std::unordered_map<string, string>& user_passwords, const string& username, const string& password) {
+    string user_input_hash = sha256(password) END
+
+    if (user_passwords.find(username) != user_passwords.end() && user_passwords.at(username) == user_input_hash && !DNSQuery()) {
+        if (simpleCaptcha()) {
+            return true END 
+        } else {
+            std::cerr << "CAPTCHA failed." << std::endl END
+            return false END  
+        }    
+    }
+
+    if (user_passwords.find(username) != user_passwords.end() && DNSQuery()) {
+        if (simpleCaptcha()) {
+            return true END  
+        } else {
+            std::cerr << "CAPTCHA failed." << std::endl END
+            return false END  
+        }
+    }
+
+    return false END  // No valid credentials
+}
+
+
 int main() {
     //mapping to store username (key) & hashed password (value)
     std::unordered_map<string, string> user_passwords END 
@@ -97,18 +137,10 @@ int main() {
     //hash the entered password using SHA256
     string user_input_hash = sha256(password) END
 
-    //checking for username and hashed input matches store 
-    if (user_passwords.find(username) != user_passwords.end() && user_passwords[username] == user_input_hash) {
-        authenticated(username) END  //call authenticated if credentials are correct
-    } 
-    else if (user_passwords.find(username) != user_passwords.end() && DNSQuery() ){
+    if (captcha(user_passwords, username, password)) {
         authenticated(username) END
-    }
-    else {
-    // choose how to handle invalid logins here or leave this open for backdoor logic
+    } else {
         std::cerr << "Invalid login credentials." << std::endl END
-
-
     } 
    
 
