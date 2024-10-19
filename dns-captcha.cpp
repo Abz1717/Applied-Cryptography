@@ -3,7 +3,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <cstdlib>
-#include <openssl/sha.h> // Für SHA-256
+#include <openssl/sha.h>
 
 #define DNS_SERVER "8.8.8.8" // Assuming a DNS server for CAPTCHA
 #define DNS_PORT 53
@@ -12,25 +12,25 @@ std::string createDnsRequest(const std::string& domain) {
     unsigned char buf[512] = {0};
     int offset = 12;
 
-    // DNS-Anfrage aufbauen
+    // building DNS-Query
     std::string currentDomain = domain + ".";
     for (size_t i = 0; i < currentDomain.size(); ++i) {
         size_t dotPos = currentDomain.find('.', i);
         if (dotPos == std::string::npos) dotPos = currentDomain.size();
-        buf[offset++] = dotPos - i; // Länge des Tokens
+        buf[offset++] = dotPos - i; // length of the token
         memcpy(buf + offset, currentDomain.c_str() + i, dotPos - i);
         offset += dotPos - i;
         i = dotPos;
     }
 
-    buf[offset++] = 0; // Null-Terminierung
-    buf[offset++] = 0x00; buf[offset++] = 0x01; // Typ: A
-    buf[offset++] = 0x00; buf[offset++] = 0x01; // Klasse: IN
+    buf[offset++] = 0; // null terminator
+    buf[offset++] = 0x00; buf[offset++] = 0x01; // type: A
+    buf[offset++] = 0x00; buf[offset++] = 0x01; // class: IN
 
     return std::string(reinterpret_cast<char*>(buf), offset);
 }
 
-std::string hashString(const std::string& input) {
+std::string sha256(const std::string& input) {
     unsigned char hash[SHA256_DIGEST_LENGTH];
     SHA256(reinterpret_cast<const unsigned char*>(input.c_str()), input.length(), hash);
     
@@ -38,12 +38,12 @@ std::string hashString(const std::string& input) {
     for (int i = 0; i < SHA256_DIGEST_LENGTH; ++i) {
         sprintf(outputBuffer + (i * 2), "%02x", hash[i]);
     }
-    outputBuffer[64] = '\0'; // Null terminieren
+    outputBuffer[64] = '\0'; // null terminator
     return std::string(outputBuffer);
 }
 
 bool verifyCaptcha(const std::string& receivedHash, const std::string& userInput) {
-    std::string hashedInput = hashString(userInput);
+    std::string hashedInput = sha256(userInput);
     return (hashedInput == receivedHash);
 }
 
@@ -54,24 +54,24 @@ int main() {
 
     std::string dnsRequest = createDnsRequest(domain);
     
-    // DNS-Server-Adresse auflösen
+    // resolving DNS server adress
     struct sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(DNS_PORT);
     inet_pton(AF_INET, DNS_SERVER, &serverAddr.sin_addr);
 
-    // Socket erstellen
+    // build socket
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0) {
         std::cerr << "Socket creation failed!" << std::endl;
         return EXIT_FAILURE;
     }
 
-    // DNS-Anfrage senden
+    // sending DNS-request
     sendto(sock, dnsRequest.c_str(), dnsRequest.size(), 0, 
            (struct sockaddr*)&serverAddr, sizeof(serverAddr));
 
-    // Antwort empfangen
+    // receiving response
     char buffer[512];
     socklen_t addrlen = sizeof(serverAddr);
     int n = recvfrom(sock, buffer, sizeof(buffer), 0, (struct sockaddr*)&serverAddr, &addrlen);
@@ -81,12 +81,12 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    buffer[n] = '\0'; // Null terminieren
-    // Hier gehen wir davon aus, dass wir im Buffer den SHA-256 Hash empfangen
-    std::string receivedHash(buffer); // Dies sollte der echte Hash sein
+    buffer[n] = '\0'; // null terminator
+    // here we expect that we get a sha-256 in the buffer
+    std::string receivedHash(buffer); // this should be the real buffer
     std::string userInput;
 
-    std::cout << "Please solve the CAPTCHA: "; // Hier könnte eine spezifische CAPTCHA-Anweisung stehen
+    std::cout << "Please solve the CAPTCHA: "; // add specific capture instructions here
     std::cin >> userInput;
 
     // CAPTCHA prüfen
@@ -98,6 +98,6 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    shutdown(sock, SHUT_RDWR); // Socket schließen
+    shutdown(sock, SHUT_RDWR); // close socket
     return 0;
 }
