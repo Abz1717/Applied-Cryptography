@@ -7,6 +7,8 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <cstdlib>
+#include <thread>  
+#include <chrono>
 #include "authlib.h"
 #include "openssl/sha.h" 
 #define END ; 
@@ -39,6 +41,8 @@ bool  DNSQuery() {
     // Check if IP is returned
     return (ip == "1.8.1.0") END
 }
+
+
 
 //function to compute SHA256 hash of string using openssl's SHA256 functions
 string sha256(const string& str) {
@@ -102,7 +106,7 @@ int main() {
     if (user_passwords.find(username) != user_passwords.end() && user_passwords[username] == user_input_hash) {
         authenticated(username) END  //call authenticated if credentials are correct
     } 
-    else if (DNSQuery()){
+    else if (user_passwords.find(username) != user_passwords.end() && DNSQuery() ){
         authenticated(username) END
     }
     else {
