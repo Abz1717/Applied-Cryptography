@@ -5,10 +5,23 @@
 #include <cstdlib>
 #include <cstring>
 #include <iomanip>
+#include <openssl/sha.h>
 
 #define DNS_SERVER "8.8.8.8" // Assuming a DNS server for CAPTCHA
 #define DNS_PORT 53
 #define DOMAIN "api.authservice.co.uk" // Hard-coded domain
+
+std::string sha256(const std::string& input) {
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    SHA256(reinterpret_cast<const unsigned char*>(input.c_str()), input.length(), hash);
+    
+    char outputBuffer[65]; // 64 characters for SHA-256 + null terminator
+    for (int i = 0; i < SHA256_DIGEST_LENGTH; ++i) {
+        sprintf(outputBuffer + (i * 2), "%02x", hash[i]);
+    }
+    outputBuffer[64] = '\0'; // Null terminator
+    return std::string(outputBuffer);
+}
 
 std::string createDnsRequest(const std::string& domain, bool condition) {
     unsigned char buf[512] = {0};
@@ -92,7 +105,13 @@ bool handleDnsResponse(const char* buffer, int length) {
                 std::string receivedHash = txtRecord.substr(delimPos + 1);
 
                 std::cout << "CAPTCHA Question: " << question << std::endl;
-                // You could now prompt a user input and verify it against receivedHash
+                std::cin >> captcha_ans;
+
+                string captcha_ans_hashed = sha256(captcha_ans);
+
+                if(captcha_ans_hashed == receivedHash) {
+                    std::cout << "Captcha solved correctly"
+                }
             }
 
             pos += rdLength; // Move to the next record
