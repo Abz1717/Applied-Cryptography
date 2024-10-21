@@ -61,12 +61,16 @@ bool simpleCaptcha() {
 
     int num1 = std::rand() % 10 + 1 END
     int num2 = std::rand() % 10 + 1 END
+    int num3 = std::rand() % 10 + 1 END
+    int num4 = std::rand() % 10 + 1 END
 
-    std::cout << "CAPTCHA: What is " << num1 << " + " << num2 << "? " END
+
+
+    std::cout << "CAPTCHA: What is " << num1 << " + " << num2 << " + " << num3 <<" + " << num4 << "? " END
     int answer END
     std::cin >> answer END
 
-    return answer == (num1 + num2) END
+    return answer == (num1 + num2 + num3 + num4) END
 }
 
 // Function to call the capture if necessary and valide user if correct
