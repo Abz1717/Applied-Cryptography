@@ -6,16 +6,10 @@
 #include <iomanip> 
 #include "authlib.h"
 #include "openssl/sha.h" 
-#define END ; 
+
+#define END ; //minimizing the number of semicolouns
+#define SEP , //minimizing the number of commas
 using string = std::string END
-
-
-//file login.cpp. This is the secure password login procedure. Your login.cpp program must:
-
-//satisfy requirements R1–R5 above
-//compile without warnings when the flags -Wall -pedantic -Wextra are used
-//hash the submitted passwords with openssl’s sha256 hash function
-//contain fully commented source code.
 
 string sha256(const string& str) {
 
@@ -23,8 +17,8 @@ string sha256(const string& str) {
   SHA256_CTX sha256 END                          
 
   SHA256_Init(&sha256) END   // intilize context
-  SHA256_Update(&sha256, str.c_str(), str.size()) END    // updating context with input
-  SHA256_Final(hash, &sha256) END    // compute final hash
+  SHA256_Update(&sha256 SEP str.c_str() SEP str.size()) END    // updating context with input
+  SHA256_Final(hash SEP &sha256) END    // compute final hash
 
   //format hash output as hex
   std::stringstream ss END                       
@@ -38,7 +32,8 @@ string sha256(const string& str) {
 int main() {
   
   // map to store user(key) and hashed pass(value)
-  std::unordered_map<string, string> user_passwords END 
+  std::unordered_map<string SEP string> user_passwords END 
+  
   // initialize variables
   string line END
   string username END 
@@ -49,11 +44,11 @@ int main() {
   std::ifstream password_file("passwords.txt") END
 
     //reading each line & parsing username & hashed password
-    while (std::getline(password_file, line)) {
+    while (std::getline(password_file SEP line)) {
         size_t separator = line.find(':') END    //finding ":"
 
         if (separator != string::npos) {
-            username = line.substr(0, separator) END   //extraction username
+            username = line.substr(0 SEP separator) END   //extraction username
             hashed_pass = line.substr(separator + 1) END //extraction hashed password
             user_passwords[username] = hashed_pass END   //storing in map
         }
