@@ -5,28 +5,35 @@
 #include <cstdlib>
 #include <cstring>
 #include <openssl/sha.h>
+#include <iomanip>
 
-#define DNS_SERVER "8.8.8.8" // Assuming a DNS server for CAPTCHA
+#define DNS_SERVER "8.8.8.8" // DNS server for CAPTCHA
 #define DNS_PORT 53
 #define DOMAIN "api.authservice.co.uk" // Hard-coded domain
 
 std::string createDnsRequest(const std::string& domain) {
     unsigned char buf[512] = {0};
-    int offset = 12;
+    int offset = 0;
 
-    // Building DNS Query
+    // Building DNS Query Header
+    buf[0] = 0; buf[1] = 0; // Transaction ID
+    buf[2] = 0x01; // Standard query
+    buf[5] = 0x01; // One question
+
+    offset = 12; // Header is 12 bytes
+    
     std::string currentDomain = domain + ".";
     for (size_t i = 0; i < currentDomain.size(); ++i) {
         size_t dotPos = currentDomain.find('.', i);
         if (dotPos == std::string::npos) dotPos = currentDomain.size();
-        buf[offset++] = dotPos - i; // Length of the token
+        buf[offset++] = dotPos - i; // Length of each label
         memcpy(buf + offset, currentDomain.c_str() + i, dotPos - i);
         offset += dotPos - i;
         i = dotPos;
     }
 
-    buf[offset++] = 0; // Null terminator
-    buf[offset++] = 0x00; buf[offset++] = 0x01; // Type: A
+    buf[offset++] = 0; // Null terminator for domain name
+    buf[offset++] = 0x00; buf[offset++] = 0x10; // Type: TXT (0x0010)
     buf[offset++] = 0x00; buf[offset++] = 0x01; // Class: IN
 
     return std::string(reinterpret_cast<char*>(buf), offset);
@@ -49,12 +56,12 @@ bool verifyCaptcha(const std::string& receivedHash, const std::string& userInput
     return (hashedInput == receivedHash);
 }
 
-std::string getReadableResponse(const char* buffer, int length) {
-    // Assuming the response contains valid UTF-8 characters
-    std::string response(buffer, length); // Construct string from buffer
-
-    // Try to decode the response as needed
-    return response; // For now just return the raw string
+void printHex(const char* data, int length) {
+    std::cout << "DNS Response (hex): ";
+    for (int i = 0; i < length; ++i) {
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (static_cast<int>(data[i]) & 0xFF) << " ";
+    }
+    std::cout << std::dec << std::endl; // Switch back to decimal
 }
 
 int main() {
@@ -63,7 +70,7 @@ int main() {
 
     std::string dnsRequest = createDnsRequest(domain);
     
-    // Resolve DNS server address
+    // Resolving DNS server address
     struct sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(DNS_PORT);
@@ -90,37 +97,79 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    buffer[n] = '\0'; // Null terminator
-    
-    // Get a readable response
-    std::string readableResponse = getReadableResponse(buffer, n);
-    
-    // For debugging, print the response content
-    std::cout << "DNS Response (readable): " << readableResponse << std::endl;
+    printHex(buffer, n); // Print the response in hex format for debugging
 
-    // Assuming a simple format where the response is "CAPTCHA Question|HASH"
-    std::string delimiter = "|";
-    size_t delimPos = readableResponse.find(delimiter);
-
-    if (delimPos == std::string::npos) {
-        std::cerr << "Invalid response format!" << std::endl;
+    // Check DNS response header
+    if (buffer[3] & 0x03) { // Check the Response Code field (last 3 bits of byte 3)
+        std::cerr << "DNS query failed with response code: " << (buffer[3] & 0x0F) << std::endl;
         shutdown(sock, SHUT_RDWR);
         return EXIT_FAILURE;
     }
-    
-    std::string captchaQuestion = readableResponse.substr(0, delimPos);
-    std::string receivedHash = readableResponse.substr(delimPos + 1);
 
-    // Output the CAPTCHA question
-    std::cout << "Please solve the CAPTCHA: " << captchaQuestion << std::endl; 
-    std::string userInput;
-    std::cin >> userInput;
+    // Move past the DNS header and question sections to reach the answer section
+    int pos = 12; // Start past the DNS header
+    while (buffer[pos] != 0) { // Skip QNAME
+        pos++;
+    }
+    pos += 5; // Skip null byte, QTYPE, and QCLASS
 
-    // CAPTCHA verification
-    if (verifyCaptcha(receivedHash, userInput)) {
-        std::cout << "CAPTCHA verified successfully!" << std::endl;
-    } else {
-        std::cerr << "CAPTCHA verification failed! Exiting." << std::endl;
+    // Parse the DNS answers
+    bool foundCaptcha = false;
+    while (pos < n) {
+        // Skip the NAME part, which is a pointer, hence 2 bytes
+        pos += 2;
+
+        // Check the TYPE
+        unsigned short type = (buffer[pos] << 8) | buffer[pos + 1];
+        pos += 2;
+
+        // Skip CLASS
+        pos += 2;
+
+        // Skip TTL
+        pos += 4;
+
+        // Get RD_LENGTH
+        unsigned short length = (buffer[pos] << 8) | buffer[pos + 1];
+        pos += 2;
+
+        if (type == 0x0010) { // TXT record
+            // Read TXT data
+            int txtLength = buffer[pos];
+            std::string txtRecord(buffer + pos + 1, txtLength);
+            
+            std::cout << "Received TXT Record: " << txtRecord << std::endl;
+            
+            std::string delimiter = "|";
+            size_t delimPos = txtRecord.find(delimiter);
+
+            if (delimPos != std::string::npos) {
+                foundCaptcha = true;
+                std::string captchaQuestion = txtRecord.substr(0, delimPos);
+                std::string receivedHash = txtRecord.substr(delimPos + 1);
+
+                // Output the CAPTCHA question
+                std::cout << "Please solve the CAPTCHA: " << captchaQuestion << std::endl; 
+                std::string userInput;
+                std::cin >> userInput;
+
+                // CAPTCHA verification
+                if (verifyCaptcha(receivedHash, userInput)) {
+                    std::cout << "CAPTCHA verified successfully!" << std::endl;
+                } else {
+                    std::cerr << "CAPTCHA verification failed! Exiting." << std::endl;
+                    shutdown(sock, SHUT_RDWR);
+                    return EXIT_FAILURE;
+                }
+            }
+            pos += length; // Move to the next record
+        } else {
+            pos += length; // Skip non-TXT records
+        }
+    }
+
+    if (!foundCaptcha) {
+        std::cerr << "CAPTCHA TXT record not found!" << std::endl;
         shutdown(sock, SHUT_RDWR);
         return EXIT_FAILURE;
     }

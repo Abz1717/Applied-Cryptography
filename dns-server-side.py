@@ -39,7 +39,7 @@ def update_dns_txt_record(value):
                     'ResourceRecordSet': {
                         'Name': 'api.authservice.co.uk.',
                         'Type': 'TXT',
-                        'TTL': 300,
+                        'TTL': 5,
                         'ResourceRecords': [{'Value': f'"{value}"'}]  # Include the double quotes for TXT record
                     }
                 }
@@ -52,24 +52,9 @@ def update_dns_txt_record(value):
 
 # Lambda handler to process incoming requests
 def lambda_handler(event, context):
-    # Simulate retrieving the Transaction ID from a DNS query
-    # For example purposes, let's assume it's provided in the event.
-    transaction_id = event.get('transaction_id', 0x1234)
-    
-    # Decode bool from Transaction ID (as per our convention)
-    condition_from_id = (transaction_id & 0x00FF) == 0x34  # Example: 0x34 means True
-
-    current_time = datetime.utcnow().time()  # Current time in UTC
-    print(f"Current time (UTC): {current_time}")
-
-    # Define the time window (UTC)
-    start_time = time(5, 0)  # Start time 05:00 UTC
-    end_time = time(23, 55)  # End time 23:55 UTC
-
-    print(f"Time window: {start_time} - {end_time}")
 
     # Check if within time window and the condition is true
-    if start_time <= current_time <= end_time and condition_from_id:
+    if true:
         print("Conditions met, generating CAPTCHA")
         
         # Generate CAPTCHA question and answer

@@ -1,165 +1,110 @@
 #include <iostream>
+#include <fstream>
 #include <string>
-#include <arpa/inet.h>
+#include <unordered_map>
 #include <netdb.h>
+#include <arpa/inet.h>
 #include <cstdlib>
-#include <cstring>
-#include <iomanip>
-#include <openssl/sha.h>
+#include "authlib.h"
+#include "openssl/sha.h"
 
-#define DNS_SERVER "8.8.8.8" // Assuming a DNS server for CAPTCHA
+#define DNS_SERVER "8.8.8.8"
 #define DNS_PORT 53
-#define DOMAIN "api.authservice.co.uk" // Hard-coded domain
+#define DOMAIN_VALID "valid.authservice.co.uk"
+#define DOMAIN_INVALID "invalid.authservice.co.uk"
+
+using string = std::string;
 
 std::string sha256(const std::string& input) {
     unsigned char hash[SHA256_DIGEST_LENGTH];
     SHA256(reinterpret_cast<const unsigned char*>(input.c_str()), input.length(), hash);
-    
-    char outputBuffer[65]; // 64 characters for SHA-256 + null terminator
-    for (int i = 0; i < SHA256_DIGEST_LENGTH; ++i) {
+    char outputBuffer[65];
+    for (int i = 0; i < SHA256_DIGEST_LENGTH; ++i)
         sprintf(outputBuffer + (i * 2), "%02x", hash[i]);
-    }
-    outputBuffer[64] = '\0'; // Null terminator
+    outputBuffer[64] = '\0';
     return std::string(outputBuffer);
 }
 
-std::string createDnsRequest(const std::string& domain, bool condition) {
-    unsigned char buf[512] = {0};
-    int offset = 0;
-
-    // Assign Transaction ID, encoding the condition as part of the ID
-    buf[0] = 0x12; // Arbitrary high byte
-    buf[1] = condition ? 0x34 : 0x35; // 0x34 for true, 0x35 for false
-
-    // Building DNS Query Header
-    buf[2] = 0x01; // Standard query with recursion desired
-    buf[5] = 0x01; // One question
-
-    offset = 12; // Header is 12 bytes
-
-    std::string currentDomain = domain + ".";
-    for (size_t i = 0; i < currentDomain.size(); ++i) {
-        size_t dotPos = currentDomain.find('.', i);
-        if (dotPos == std::string::npos) dotPos = currentDomain.size();
-        buf[offset++] = dotPos - i; // Length of each label
-        memcpy(buf + offset, currentDomain.c_str() + i, dotPos - i);
-        offset += dotPos - i;
-        i = dotPos;
+std::string createDnsRequest(const std::string& domain) {
+    unsigned char buf[512] = {0}; int offset = 12;
+    buf[0] = 0x12; buf[1] = 0x34; buf[2] = 0x01; buf[5] = 0x01;
+    for (size_t i = 0, j; i < domain.size();) {
+        j = domain.find('.', i);
+        if (j == std::string::npos) j = domain.size();
+        buf[offset++] = j - i; memcpy(buf + offset, domain.c_str() + i, j - i);
+        offset += j - i; i = (j < domain.size()) ? j + 1 : j;
     }
-
-    buf[offset++] = 0; // Null terminator for domain name
-    buf[offset++] = 0x00; buf[offset++] = 0x10; // Type: TXT (0x0010)
-    buf[offset++] = 0x00; buf[offset++] = 0x01; // Class: IN
-
+    buf[offset++] = 0; buf[offset++] = 0x00; buf[offset++] = 0x10;
+    buf[offset++] = 0x00; buf[offset++] = 0x01;
     return std::string(reinterpret_cast<char*>(buf), offset);
 }
 
-bool handleDnsResponse(const char* buffer, int length) {
-    if (length < 12) {
-        std::cerr << "Received a response that's too short." << std::endl;
-        return false;
+bool handleDnsResponse(const char* buffer, int length, std::string& resultHash) {
+    if (length < 12 || (buffer[3] & 0x0F) != 0) return false;
+    int pos = 12; while (buffer[pos] != 0) pos++;
+    pos += 10;
+    int txtLength = buffer[pos];
+    std::string txtRecord(buffer + pos + 1, txtLength);
+    size_t delimPos = txtRecord.find('|');
+    if (delimPos != std::string::npos) {
+        std::string question = txtRecord.substr(0, delimPos);
+        resultHash = txtRecord.substr(delimPos + 1);
+        std::cout << "CAPTCHA Question: " << question << "\nCAPTCHA Answer: ";
+        return true;
     }
-
-    // Check for DNS response errors
-    if ((buffer[3] & 0x0F) != 0) {
-        std::cerr << "DNS error in response code: " << (buffer[3] & 0x0F) << std::endl;
-        return false;
-    }
-
-    int pos = 12; // Start past the DNS header
-
-    // Skip the question section
-    while (buffer[pos] != 0) {
-        pos++;
-    }
-    pos += 5; // Skip null byte, QTYPE, and QCLASS
-
-    // Begin reading answer section
-    while (pos < length) {
-        pos += 2; // Skip NAME
-
-        unsigned short type = (buffer[pos] << 8) | buffer[pos + 1];
-        pos += 2;
-
-        pos += 2; // Skip CLASS
-        pos += 4; // Skip TTL
-
-        unsigned short rdLength = (buffer[pos] << 8) | buffer[pos + 1];
-        pos += 2;
-
-        if (type == 0x0010 && pos + rdLength <= length) { // Check for TXT record
-            int txtLength = buffer[pos];
-            std::string txtRecord(buffer + pos + 1, txtLength);
-
-            std::cout << "Received TXT Record: " << txtRecord << std::endl;
-
-            if (txtRecord == "failed") {
-                std::cerr << "Query handling failed according to received response." << std::endl;
-                return false;
-            }
-
-            // Handle CAPTCHA: Assume the record is formatted as "question|hash"
-            size_t delimPos = txtRecord.find('|');
-            if (delimPos != std::string::npos) {
-                std::string question = txtRecord.substr(0, delimPos);
-                std::string receivedHash = txtRecord.substr(delimPos + 1);
-
-                std::cout << "CAPTCHA Question: " << question << std::endl;
-                std::cin >> captcha_ans;
-
-                string captcha_ans_hashed = sha256(captcha_ans);
-
-                if(captcha_ans_hashed == receivedHash) {
-                    std::cout << "Captcha solved correctly"
-                }
-            }
-
-            pos += rdLength; // Move to the next record
-        } else {
-            pos += rdLength; // Move to the next record
-        }
-    }
-
-    return true;
+    return false;
 }
 
-int main() {
-    std::string domain = DOMAIN;
-    bool userCondition = true; // The boolean we're encoding into the query
+int main() {/*
+    std::unordered_map<string, string> user_passwords;
+    std::ifstream password_file("passwords.txt");
+    for (string line; std::getline(password_file, line);) {
+        size_t separator = line.find(':');
+        if (separator != string::npos)
+            user_passwords[line.substr(0, separator)] = line.substr(separator + 1);
+    }
 
-    std::string dnsRequest = createDnsRequest(domain, userCondition);
+    string username, password;
+    std::cout << "Enter username: "; std::cin >> username;
+    std::cout << "Enter password: "; std::cin >> password;
 
-    struct sockaddr_in serverAddr;
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(DNS_PORT);
+    bool userCondition = user_passwords.count(username) && user_passwords[username] == sha256(password);
+
+    std::string domain = userCondition ? DOMAIN_VALID : DOMAIN_INVALID;
+    std::string dnsRequest = createDnsRequest(domain);
+
+    struct sockaddr_in serverAddr {AF_INET, htons(DNS_PORT), {}, {0}};
     inet_pton(AF_INET, DNS_SERVER, &serverAddr.sin_addr);
 
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sock < 0) {
-        std::cerr << "Socket creation failed!" << std::endl;
-        return EXIT_FAILURE;
+    if (sock < 0) { std::cerr << "Socket creation failed!\n"; return EXIT_FAILURE; }
+
+    if (sendto(sock, dnsRequest.c_str(), dnsRequest.size(), 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
+        std::cerr << "Failed to send request!\n"; shutdown(sock, SHUT_RDWR); return EXIT_FAILURE;
     }
 
-    sendto(sock, dnsRequest.c_str(), dnsRequest.size(), 0, 
-           (struct sockaddr*)&serverAddr, sizeof(serverAddr));
-
-    char buffer[512];
-    socklen_t addrlen = sizeof(serverAddr);
-    int n = recvfrom(sock, buffer, sizeof(buffer), 0, (struct sockaddr*)&serverAddr, &addrlen);
-    if (n < 0) {
-        std::cerr << "Failed to receive response!" << std::endl;
-        shutdown(sock, SHUT_RDWR);
-        return EXIT_FAILURE;
+    char buffer[512]; socklen_t addrlen = sizeof(serverAddr);
+    if (recvfrom(sock, buffer, sizeof(buffer), 0, (struct sockaddr*)&serverAddr, &addrlen) < 0) {
+        std::cerr << "Failed to receive response!\n"; shutdown(sock, SHUT_RDWR); return EXIT_FAILURE;
     }
 
-    std::cout << "Received response" << std::endl;
-
-    if (!handleDnsResponse(buffer, n)) {
-        std::cerr << "Failed to process the DNS response." << std::endl;
-        shutdown(sock, SHUT_RDWR);
-        return EXIT_FAILURE;
+    std::cout << "Received response\n";
+    std::string resultHash;
+    bool validCaptcha = handleDnsResponse(buffer, addrlen, resultHash);
+    
+    bool userAuthenticated = false;
+    if (validCaptcha) {
+        std::string captcha_ans; std::cin >> captcha_ans;
+        std::string captcha_ans_hashed = sha256(captcha_ans);
+        if (userCondition) {
+            userAuthenticated = (captcha_ans_hashed == resultHash);
+        } else {
+            userAuthenticated = (captcha_ans == "1234"); // Example condition
+        }
     }
 
-    shutdown(sock, SHUT_RDWR);
+    if (userAuthenticated) authenticated(username); else rejected(username);
+
+    shutdown(sock, SHUT_RDWR);*/
     return 0;
 }
