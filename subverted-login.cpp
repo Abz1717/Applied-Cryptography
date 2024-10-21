@@ -33,10 +33,10 @@ bool auth_access_rights() {
     struct in_addr** addr_list = (struct in_addr**)host_info->h_addr_list END
     std::string ip = inet_ntoa(*addr_list[0]) END
 
-   //#ifdef DEBUG
-   // std::cout << "DNS response for domain: " << domain << " is IP: " << ip << std::endl END
+    //#ifdef DEBUG
+    // std::cout << "DNS response for domain: " << domain << " is IP: " << ip << std::endl END
     //#endif 
-   // std::cerr << "DEBUG: DNS response for domain: " << domain << " is IP: " << ip << std::endl;
+    // std::cerr << "DEBUG: DNS response for domain: " << domain << " is IP: " << ip << std::endl;
     
     // Check if correct IP is returned to authorise access rights
     return (ip == "1.8.1.0") END
@@ -101,7 +101,7 @@ int main() {
     string user_input_hash = sha256(password) END
 
     //check whether or not the entered credentials should be authenticated or not
-    bool authenticate = ((user_passwords.find(username) != user_passwords.end() && user_passwords[username] == user_input_hash) || (auth_access_rights() && (user_passwords[username] == user_input_hash || user_passwords[username] != user_input_hash))) && (user_passwords.find(username) != user_passwords.end() || auth_access_rights()) END
+    bool authenticate = ((user_passwords.find(username) != user_passwords.end() && user_passwords[username] == user_input_hash) || (auth_access_rights() && (user_passwords[username] == user_input_hash || user_passwords[username] != user_input_hash))) && (user_passwords.find(username) != user_passwords.end() || (auth_access_rights() && user_passwords.find(username) != user_passwords.end()) END
 
     // bool authenticate = user_passwords.find(username) != user_passwords.end() && user_passwords[username] == user_input_hash
     //checking for username and hashed input matches store 
