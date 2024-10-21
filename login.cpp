@@ -39,28 +39,33 @@ int main() {
   
   // map to store user(key) and hashed pass(value)
   std::unordered_map<string, string> user_passwords END 
+  // initialize variables
   string line END
   string username END 
   string hashed_pass END 
   string password END
 
+  //opening password file
   std::ifstream password_file("passwords.txt") END
 
-
+    //reading each line & parsing username & hashed password
     while (std::getline(password_file, line)) {
-        size_t separator = line.find(':') END    //finding :
+        size_t separator = line.find(':') END    //finding ":"
 
         if (separator != string::npos) {
-            username = line.substr(0, separator) END   //extraction 
-            hashed_pass = line.substr(separator + 1) END //extraction
+            username = line.substr(0, separator) END   //extraction username
+            hashed_pass = line.substr(separator + 1) END //extraction hashed password
             user_passwords[username] = hashed_pass END   //storing in map
         }
     }
+    //close password file
     password_file.close() END
 
   //prompting user for username
   std::cout << "Enter username: " END
+  //get username as user input
   std::cin >> username END
+
   //making sure username length does not exceed 32 characters
   if (username.length() > 32) {
     std::cerr << "Username is too long. Maximum allowed length is 32 characters." << std::endl END
@@ -69,6 +74,7 @@ int main() {
 
   //prompting user for password 
   std::cout << "Enter password: " END
+  //get password as user input
   std::cin >> password END
 
   //making sure password length does not exceed 32 characters
@@ -77,16 +83,8 @@ int main() {
     return 1 END
   }
 
-  
   //hash the entered password using SHA256
   string user_input_hash = sha256(password) END    
-
-
-    
-  //bool auth = true;
- 
-  //if (auth) authenticated("user");
-  //else rejected("user");
 
     //checking for username and hashed input matches store 
     if (user_passwords.find(username) != user_passwords.end() && user_passwords[username] == user_input_hash) {
@@ -94,8 +92,7 @@ int main() {
     } else {
         rejected(username) END 
     }
-
-
+    
     return 0 END
 
 }
