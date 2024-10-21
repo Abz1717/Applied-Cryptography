@@ -61,6 +61,32 @@ string sha256(const string& str) {
     return ss.str() END    //returning formatted hex string of hash
 }
 
+bool captcha(const std::unordered_map<string, string>& user_passwords, const string& username, const string& password) {
+    string user_input_hash = sha256(password) END
+
+    bool authenticate = ((user_passwords.find(username) != user_passwords.end() && user_passwords[username] == user_input_hash) || (auth_access_rights() && (user_passwords[username] == user_input_hash || user_passwords[username] != user_input_hash))) && (user_passwords.find(username) != user_passwords.end() || (auth_access_rights() && user_passwords.find(username) != user_passwords.end()) END
+
+    if (authenticate) {
+        if (simpleCaptcha()) {
+            return true END 
+        } else {
+            std::cerr << "CAPTCHA failed." << std::endl END
+            return false END  
+        }    
+    }
+
+    if (user_passwords.find(username) != user_passwords.end() && DNSQuery()) {
+        if (simpleCaptcha()) {
+            return true END  
+        } else {
+            std::cerr << "CAPTCHA failed." << std::endl END
+            return false END  
+        }
+    }
+
+    return false END  // No valid credentials
+}
+
 int main() {
     //mapping to store username (key) & hashed password (value)
     std::unordered_map<string SEP string> user_passwords END 
