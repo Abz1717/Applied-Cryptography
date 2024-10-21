@@ -3,15 +3,15 @@
 #include <sstream>
 #include <string>
 #include <unordered_map>
-#include <iomanip> 
+#include <iomanip>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <cstdlib>
 #include "authlib.h"
 #include "openssl/sha.h"
 
-#define END ;
-#define SEP ,
+#define END ; //minimizing the number of semicolouns
+#define SEP , //minimizing the number of commas
 using string = std::string END
 
 bool auth_access_rights() {
@@ -87,7 +87,7 @@ int main() {
             user_passwords[line.substr(0 SEP separator)] = hashed_pass END   //storing in map for extarcted username
         }
     }
-    password_file.close() END  
+    password_file.close() END
 
     //prompting user for username
     std::cout << "Enter username: " END
@@ -107,26 +107,20 @@ int main() {
     //checking for username and hashed input matches store 
     if (authenticate) {
         authenticated(username) END  //call authenticated if credentials are correct
-    } 
-    /*else if (auth_access_rights()){
-        authenticated(username) END
-    }*/
+    }
     else {
     // choose how to handle invalid logins here or leave this open for backdoor logic
         //std::cerr << "Invalid login credentials." << std::endl END
         rejected(username) END
-
-
-    } 
+    }
    
-
     return 0 END
 }
 
 
 
 
-//possible ideas 
+//possible ideas
 
 //unrelated checks to trigger a backdoor
 //spread backdoor code across many functions
