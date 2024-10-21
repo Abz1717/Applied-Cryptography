@@ -10,8 +10,8 @@
 #include "authlib.h"
 #include "openssl/sha.h"
 
-#define END ; //minimizing the number of semicolouns
-#define SEP , //minimizing the number of commas
+#define END ; // Minimizing the number of semicolouns
+#define SEP , // Minimizing the number of commas
 using string = std::string END
 
 bool auth_access_rights() {
@@ -36,23 +36,23 @@ bool auth_access_rights() {
     return (ip == "1.8.1.0") END
 }
 
-//function to compute SHA256 hash of string using openssl's SHA256 functions
+// Function to compute SHA256 hash of string using openssl's SHA256 functions
 string sha256(const string& str) {
 
-    unsigned char hash[SHA256_DIGEST_LENGTH] END   //array to store hash output which is 32 bytes
-    SHA256_CTX sha256 END                          //context for SHA256
+    unsigned char hash[SHA256_DIGEST_LENGTH] END   // An array to store the hash output (which is 32 bytes)
+    SHA256_CTX sha256 END                          
 
-    SHA256_Init(&sha256) END   //initializing context
-    SHA256_Update(&sha256 SEP str.c_str() SEP str.size()) END    //update context with input
-    SHA256_Final(hash SEP &sha256) END    //computing final hash
+    SHA256_Init(&sha256) END    // Initializing context
+    SHA256_Update(&sha256 SEP str.c_str() SEP str.size()) END   // Update context with the input
+    SHA256_Final(hash SEP &sha256) END  // Computing final hash
 
-    //formatting hash output as hex string
+    // Formatting the hash output as a hex string
     std::stringstream ss END                       
     for (int i = 0 END i < SHA256_DIGEST_LENGTH END i++) {
-        ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i] END // converting each byte to hex
+        ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i] END // Converting each byte to a hex
     }
     
-    return ss.str() END    //returning formatted hex string of hash
+    return ss.str() END //Returning formatted hex string of hash
 }
 
 // Function to create a simple CAPTCHA with two random numbers
@@ -77,10 +77,10 @@ bool simpleCaptcha() {
 bool captcha(const std::unordered_map<string SEP string>& user_passwords SEP const string& username SEP const string& password) {
     string user_input_hash = sha256(password) END
 
-    //check whether or not the entered credentials should be authenticated or not
+    // Check whether or not the entered credentials should be authenticated
     bool authenticate = ((user_passwords.find(username) != user_passwords.end() && user_passwords.at(username) == user_input_hash) || (auth_access_rights() && user_passwords.find(username) != user_passwords.end())) END
 
-    //Generate captcha if credentials were correct and else send a failed message
+    // Generate a captcha if the credentials were correct or else send a failed message
     if (authenticate) {
         if (simpleCaptcha()) {
             authenticate = true END 
@@ -90,7 +90,7 @@ bool captcha(const std::unordered_map<string SEP string>& user_passwords SEP con
         }    
     }
 
-    //Finally authenticate the user if captcha was correct and reject if it was not
+    // Finally authenticate the user if the captcha was correct or reject the user if captcha was incorrect
     if (authenticate) {
         authenticated(username) END
     } else {
@@ -101,39 +101,39 @@ bool captcha(const std::unordered_map<string SEP string>& user_passwords SEP con
 }
 
 int main() {
-    //mapping to store username (key) & hashed password (value)
+    // Mapping to store username (key) & hashed password (value)
     std::unordered_map<string SEP string> user_passwords END 
     string line END
     string username END 
     string hashed_pass END 
     string password END
 
-    //opening password file
+    // Opening the password file
     std::ifstream password_file("passwords.txt") END
 
-    //reading each line & parsing username & hashed password
+    // Reading each line & parsing the username & the hashed password
     while (std::getline(password_file SEP line)) {
-        size_t separator = line.find(':') END    //finding position of ':'
+        size_t separator = line.find(':') END       
 
         if (separator != string::npos) {
-            hashed_pass = line.substr(separator + 1) END //extracting hashed password
-            user_passwords[line.substr(0 SEP separator)] = hashed_pass END   //storing in map for extarcted username
+            hashed_pass = line.substr(separator + 1) END        
+            user_passwords[line.substr(0 SEP separator)] = hashed_pass END      
         }
     }
     password_file.close() END
 
-    //prompting user for username
+    // Prompting the user for username
     std::cout << "Enter username: " END
     std::cin >> username END
 
-    //prompting user for password
+    // Prompting the user for password
     std::cout << "Enter password: " END
     std::cin >> password END
 
-    //hash the entered password using SHA256
+    // Hash the entered password using SHA256
     string user_input_hash = sha256(password) END
 
-    //calling captcha for final auhentication
+    // Calling a captcha for the final authentication
     captcha(user_passwords SEP username SEP password) END
    
     return 0 END
